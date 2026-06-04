@@ -3,6 +3,8 @@ Orders (write-only model)
 SPDX - License - Identifier: LGPL - 3.0 - or -later
 Auteurs : Gabriel C. Ullmann, Fabio Petrillo, 2025
 """
+import json
+
 from models.product import Product
 from models.order_item import OrderItem
 from models.order import Order
@@ -98,13 +100,27 @@ def delete_order(order_id: int):
         session.close()
 
 def add_order_to_redis(order_id, user_id, total_amount, items):
-    """Insert order to Redis"""
     r = get_redis_conn()
+
+    r.hset(
+        f"order:{order_id}",
+        mapping={
+            "id": order_id,
+            "user_id": user_id,
+            "total_amount": float(total_amount),
+            "items": json.dumps(items)
+        }
+    )
+
+    for item in items:
+        r.incr(f"product:{int(item['product_id'])}", int(item["quantity"]))
+
     print(r)
 
 def delete_order_from_redis(order_id):
-    """Delete order from Redis"""
-    pass
+    r = get_redis_conn()
+    key = f"order:{order_id}"
+    return r.delete(key)
 
 def sync_all_orders_to_redis():
     """ Sync orders from MySQL to Redis """
@@ -115,9 +131,14 @@ def sync_all_orders_to_redis():
     try:
         if len(orders_in_redis) == 0:
             # mysql
-            orders_from_mysql = []
+            orders_from_mysql = get_orders_from_mysql()
             for order in orders_from_mysql:
-                # TODO: terminez l'implementation
+                add_order_to_redis(
+                    order.id,
+                    order.user_id,
+                    order.total_amount,
+                    order.items
+                )
                 print(order)
             rows_added = len(orders_from_mysql)
         else:

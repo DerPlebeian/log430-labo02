@@ -3,6 +3,7 @@ Orders (read-only model)
 SPDX - License - Identifier: LGPL - 3.0 - or -later
 Auteurs : Gabriel C. Ullmann, Fabio Petrillo, 2025
 """
+from collections import defaultdict
 
 from db import get_sqlalchemy_session, get_redis_conn
 from sqlalchemy import desc
@@ -20,12 +21,39 @@ def get_orders_from_mysql(limit=9999):
 
 def get_orders_from_redis(limit=9999):
     """Get last X orders"""
-    # TODO: écrivez la méthode
-    print(limit)
-    return []
+    r = get_redis_conn()
+
+    orders = []
+    for key in r.scan_iter("order:*"):
+        order_data = r.hgetall(key)
+        orders.append(order_data)
+
+        if len(orders) >= limit:
+            break
+
+    return orders
 
 def get_highest_spending_users():
+    """Get report of highest spending users"""
+    orders = get_orders_from_redis(99)
+    expenses_by_user = defaultdict(float)
+
+    for order in orders:
+        user_id = order.get("user_id")
+        total_amount = float(order.get("total_amount", 0))
+        expenses_by_user[user_id] += total_amount
+
+    highest_spending_users = sorted(expenses_by_user.items(), key=lambda item: item[1], reverse=True)
+    return highest_spending_users
+
+def get_highest_spending_products():
     """Get report of best selling products"""
-    # TODO: écrivez la méthode
-    # triez le résultat par nombre de commandes (ordre décroissant)
-    return []
+    r = get_redis_conn()
+
+    products_sold = []
+    for key in r.scan_iter("product:*"):
+        product_id = key.split(":")[1]
+        quantity_sold = int(r.get(key) or 0)
+        products_sold.append((product_id, quantity_sold))
+
+    return sorted(products_sold, key=lambda item: item[1], reverse=True)
