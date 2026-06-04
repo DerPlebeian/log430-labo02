@@ -42,7 +42,7 @@ jobs:
           sleep 5
 
       - name: Éxécuter les tests
-        run: docker compose exec -T store_manager pytest
+        run: docker exec store_manager_cli pytest
 
       - name: Cleanup
         if: always()
