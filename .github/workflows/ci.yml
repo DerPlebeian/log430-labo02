@@ -10,6 +10,7 @@ jobs:
       - name: Checkout dépot
         uses: actions/checkout@v4
 
+#hello
       - name: Créer fichier .env (TODO - utilisez les secrets)
         run: |
           echo "DB_HOST=mysql" >> .env
