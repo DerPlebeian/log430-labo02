@@ -23,8 +23,9 @@ jobs:
 
       - name: Démarrer le conteneur
         run: |
-          docker network create labo02-network
-          docker compose up -d
+          docker network create labo02-network || true
+          sudo docker compose down -v || true
+          docker compose up -d --build
 
       - name: Attendre MySQL
         run: |
