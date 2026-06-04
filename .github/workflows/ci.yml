@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: self-hosted
-
+    environment: labo02
     steps:
       - name: Checkout dépot
         uses: actions/checkout@v4
